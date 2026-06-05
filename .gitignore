@@ -41,9 +41,11 @@ htmlcov/
 .coverage
 coverage.xml
 
-# Chainlit
-.chainlit/
+# Chainlit session data (not tracked)
+.chainlit/*.json
+.chainlit/*.db
 chainlit.md
+# config.toml is tracked (UI branding and feature flags)
 
 # Logs
 *.log
