@@ -171,10 +171,7 @@ async def handle_message(message: cl.Message):
     5. On 'error' event: shows error message
     6. On 'done' event: finalizes the message
     """
-    # Create empty message — tokens will be streamed into it
-    response_msg = cl.Message(content="")
-    await response_msg.send()
-
+    response_msg = None
     is_escalated = False
 
     try:
@@ -210,14 +207,21 @@ async def handle_message(message: cl.Message):
 
                     # ── Response token (typewriter streaming) ──────────────────
                     elif sse.event == "token":
+                        if response_msg is None:
+                            response_msg = cl.Message(content="")
+                            await response_msg.send()
                         await response_msg.stream_token(sse.data)
 
                     # ── Stream complete ────────────────────────────────────────
                     elif sse.event == "done":
-                        break
+                        continue
 
                     # ── Error from server ──────────────────────────────────────
                     elif sse.event == "error":
+                        if response_msg is None:
+                            response_msg = cl.Message(content="")
+                            await response_msg.send()
+
                         try:
                             err = json.loads(sse.data)
                             error_msg = err.get("error", "Unknown error")
@@ -228,10 +232,11 @@ async def handle_message(message: cl.Message):
                             f"\n\n❌ **Error:** {error_msg}\n"
                             f"Please try again or contact support@shopease.com"
                         )
-                        break
+                        continue
 
         # Finalize the streamed message
-        await response_msg.update()
+        if response_msg:
+            await response_msg.update()
 
         # Show escalation notice as a follow-up message
         if is_escalated:

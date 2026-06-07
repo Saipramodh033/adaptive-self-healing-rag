@@ -37,7 +37,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
 
 from src.config import load_settings
@@ -85,7 +85,8 @@ def load_documents(knowledge_base_dir: str):
                 docs = loader.load()
 
                 # Add human-readable source metadata (relative path)
-                relative_path = file_path.relative_to(PROJECT_ROOT)
+                # Use resolve() to make absolute before relative_to() — required on Windows
+                relative_path = file_path.resolve().relative_to(PROJECT_ROOT.resolve())
                 for doc in docs:
                     doc.metadata["source"] = str(relative_path).replace("\\", "/")
                     doc.metadata["category"] = file_path.parent.name  # e.g. "policies", "faqs"
