@@ -56,8 +56,6 @@ async def test_graph_escalation_on_missing_docs(mock_deps, mock_llm, mock_vector
         '{"relevant": "no"}',        # doc_grader (attempt 2)
         'Rewritten 2',               # query_rewriter (attempt 2)
         '{"relevant": "no"}',        # doc_grader (attempt 3)
-        'Rewritten 3',               # query_rewriter (attempt 3)
-        '{"relevant": "no"}',        # doc_grader (attempt 4)
         # -> Escalate!
     ]
     
@@ -65,7 +63,7 @@ async def test_graph_escalation_on_missing_docs(mock_deps, mock_llm, mock_vector
     
     assert result["is_escalated"] is True
     assert "human support agent" in result["generation"]
-    assert result["query_rewrite_count"] == 3
+    assert result["query_rewrite_count"] == 2
 
 @pytest.mark.asyncio
 async def test_graph_escalation_on_hallucination(mock_deps, mock_llm, mock_vectorstore):
@@ -86,3 +84,16 @@ async def test_graph_escalation_on_hallucination(mock_deps, mock_llm, mock_vecto
     assert result["is_escalated"] is True
     assert "human support agent" in result["generation"]
     assert result["generation_retry_count"] == 2
+
+@pytest.mark.asyncio
+async def test_graph_out_of_domain(mock_deps, mock_llm):
+    mock_llm.responses = [
+        '{"route": "out_of_domain"}', # router
+        # -> Escalate directly!
+    ]
+    
+    result = await mock_deps.graph.ainvoke(_get_clean_state("Do you sell video games?"))
+    
+    assert result["route_decision"] == "out_of_domain"
+    assert result["is_escalated"] is True
+    assert "human support agent" in result["generation"]

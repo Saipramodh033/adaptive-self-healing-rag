@@ -27,6 +27,15 @@ def test_router_node_chitchat(mock_llm):
     
     assert result["route_decision"] == "chitchat"
 
+def test_router_node_out_of_domain(mock_llm):
+    mock_llm.responses = ['{"route": "out_of_domain"}']
+    state = {"question": "Do you sell video games?", "thought_trace": []}
+    
+    node = RouterNode(mock_llm)
+    result = node(state)
+    
+    assert result["route_decision"] == "out_of_domain"
+
 def test_doc_grader_node(mock_llm):
     mock_llm.responses = ['{"relevant": "yes"}', '{"relevant": "no"}']
     state = {

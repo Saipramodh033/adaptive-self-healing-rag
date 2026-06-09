@@ -60,6 +60,27 @@ class GeneratorNode:
             )
             logger.info(f"[Generator] Response generated ({len(response)} chars)")
 
+            # Intercept strict escalation instruction
+            # Only trigger full escalation if it's the sole response, preserving partial answers.
+            if response.strip() == "I require escalation." or ("require escalation" in response.lower() and len(response.strip()) < 50):
+                from src.core.prompts import ESCALATION_MESSAGE
+                logger.info("[Generator] Triggered strict escalation due to insufficient context.")
+                return {
+                    "generation": ESCALATION_MESSAGE,
+                    "is_escalated": True,
+                    "generation_retry_count": attempt,
+                    "thought_trace": [
+                        {
+                            "step": "generator",
+                            "detail": {
+                                "attempt": attempt,
+                                "docs_used": len(docs),
+                                "message": "Strict escalation triggered",
+                            },
+                        }
+                    ],
+                }
+
             return {
                 "generation": response,
                 "generation_retry_count": attempt,

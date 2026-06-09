@@ -49,6 +49,7 @@ from src.config import load_settings
 @pytest.fixture
 def settings(monkeypatch):
     monkeypatch.setenv("GROQ_API_KEY", "test_key")
+    monkeypatch.setenv("MAX_QUERY_REWRITES", "2")
     return load_settings()
 
 @pytest.fixture

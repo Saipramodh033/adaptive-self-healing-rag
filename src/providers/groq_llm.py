@@ -25,9 +25,8 @@ import logging
 import time
 from typing import AsyncGenerator, Type
 
-from langchain_core.pydantic_v1 import BaseModel
 from langchain_groq import ChatGroq
-from pydantic import BaseModel as PydanticBaseModel, Field
+from pydantic import BaseModel, Field
 from groq import RateLimitError
 
 from src.config import Settings
@@ -38,15 +37,19 @@ logger = logging.getLogger(__name__)
 
 # ── Structured output schemas for JSON mode ────────────────────────────────────
 
-class RouteOutput(PydanticBaseModel):
-    route: str = Field(description="'chitchat' or 'rag'")
+class RouteOutput(BaseModel):
+    route: str = Field(description="'chitchat', 'rag', 'out_of_domain', or 'adversarial'")
 
 
-class RelevanceOutput(PydanticBaseModel):
+class RelevanceOutput(BaseModel):
     relevant: str = Field(description="'yes' or 'no'")
 
 
-class GroundednessOutput(PydanticBaseModel):
+class BatchRelevanceOutput(BaseModel):
+    results: list[RelevanceOutput] = Field(description="A list of relevance results corresponding to each document evaluated in order.")
+
+
+class GroundednessOutput(BaseModel):
     grounded: str = Field(description="'yes' or 'no'")
 
 
@@ -205,6 +208,8 @@ class GroqLLMProvider(ILLMProvider):
         s = system.lower()
         if "chitchat" in s or "route" in s:
             return RouteOutput
+        if "relevance_batch" in s:
+            return BatchRelevanceOutput
         if "relevant" in s:
             return RelevanceOutput
         if "grounded" in s:
@@ -216,6 +221,9 @@ class GroqLLMProvider(ILLMProvider):
         s = system.lower()
         if "route" in s:
             return {"route": "rag"}       # Default to RAG (safer)
+        if "relevance_batch" in s:
+            # Safe default: assume all are relevant if parsing fails so we don't drop context
+            return {"results": [{"relevant": "yes"}] * 4}
         if "relevant" in s:
             return {"relevant": "yes"}    # Default to relevant (pass-through)
         if "grounded" in s:

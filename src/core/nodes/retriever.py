@@ -38,6 +38,7 @@ class RetrieverNode:
 
             return {
                 "documents": docs,
+                "retrieved_doc_sources": sources,  # Full list (pre-grading) for Recall@K eval
                 "thought_trace": [
                     {
                         "step": "retriever",
