@@ -36,6 +36,8 @@ class Settings:
 
     # ── LLM ────────────────────────────────────────────────────────────────────
     groq_api_key: str
+    groq_api_key_trad: str | None     # For Phase 9: Traditional RAG evaluator key
+    groq_api_key_judge: str | None    # For Phase 9: LLM-as-a-judge key
     fast_model: str           # llama-3.1-8b-instant  — 14,400 RPD on Groq free tier
     power_model: str          # llama-3.3-70b-versatile — 1,000 RPD on Groq free tier
 
@@ -66,15 +68,17 @@ def load_settings() -> Settings:
     """
     return Settings(
         groq_api_key=_require("GROQ_API_KEY"),
+        groq_api_key_trad=_get("GROQ_API_KEY_TRAD", None),
+        groq_api_key_judge=_get("GROQ_API_KEY_JUDGE", None),
         fast_model=_get("FAST_MODEL", "llama-3.1-8b-instant"),
         power_model=_get("POWER_MODEL", "llama-3.3-70b-versatile"),
         power_model_daily_budget=int(_get("POWER_MODEL_DAILY_BUDGET", "950")),
         chroma_persist_dir=_get("CHROMA_PERSIST_DIR", "./chroma_db"),
         chroma_collection_name=_get("CHROMA_COLLECTION_NAME", "ecommerce_support"),
         embedding_model=_get("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"),
-        max_query_rewrites=int(_get("MAX_QUERY_REWRITES", "3")),
+        max_query_rewrites=int(_get("MAX_QUERY_REWRITES", "2")),
         max_generation_retries=int(_get("MAX_GENERATION_RETRIES", "2")),
-        retrieval_top_k=int(_get("RETRIEVAL_TOP_K", "4")),
+        retrieval_top_k=int(_get("RETRIEVAL_TOP_K", "5")),
         chunk_size=int(_get("CHUNK_SIZE", "500")),
         chunk_overlap=int(_get("CHUNK_OVERLAP", "50")),
     )

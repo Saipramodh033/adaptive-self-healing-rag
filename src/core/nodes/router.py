@@ -38,7 +38,7 @@ class RouterNode:
             )
             route = result.get("route", "rag")
             # Validate — only accept known routes
-            if route not in ("chitchat", "rag"):
+            if route not in ("chitchat", "rag", "out_of_domain", "adversarial"):
                 logger.warning(f"[Router] Unexpected route '{route}', defaulting to 'rag'")
                 route = "rag"
 

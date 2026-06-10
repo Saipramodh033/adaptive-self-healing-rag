@@ -21,7 +21,7 @@ class RetrieverNode:
     Returns top-k document chunks for downstream grading and generation.
     """
 
-    def __init__(self, vectorstore: IVectorStore, top_k: int = 4):
+    def __init__(self, vectorstore: IVectorStore, top_k: int = 5):
         self._store = vectorstore
         self._top_k = top_k
 
@@ -38,6 +38,7 @@ class RetrieverNode:
 
             return {
                 "documents": docs,
+                "retrieved_doc_sources": sources,  # Full list (pre-grading) for Recall@K eval
                 "thought_trace": [
                     {
                         "step": "retriever",

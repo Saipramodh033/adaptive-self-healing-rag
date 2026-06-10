@@ -36,25 +36,46 @@ class DocGraderNode:
     def __call__(self, state: GraphState) -> dict:
         question = state["question"]
         docs = state["documents"]
-        logger.info(f"[DocGrader] Grading {len(docs)} documents ...")
+        
+        if not docs:
+            return {"documents": [], "docs_are_relevant": False, "thought_trace": []}
+            
+        logger.info(f"[DocGrader] Batch grading {len(docs)} documents ...")
 
         relevant_docs: List[Document] = []
         grading_details = []
 
+        # Build batched prompt
+        prompt_parts = [
+            f"User Question: {question}\n\n"
+            f"CRITICAL INSTRUCTION: There are EXACTLY {len(docs)} documents below. "
+            f"Your JSON array MUST contain EXACTLY {len(docs)} items. "
+            f"Stop generating immediately after the {len(docs)}th item.\n\n"
+            f"Documents to evaluate:"
+        ]
         for i, doc in enumerate(docs):
-            prompt = (
-                f"User Question: {question}\n\n"
-                f"Document:\n{doc.page_content[:1000]}"  # Cap at 1000 chars
-            )
-            try:
-                result = self._llm.invoke_json(
-                    prompt=prompt,
-                    system=DOC_GRADER_SYSTEM,
-                )
-                is_relevant = result.get("relevant", "yes") == "yes"
-            except Exception as e:
-                logger.warning(f"[DocGrader] Grading error on doc {i}: {e}. Defaulting to relevant.")
-                is_relevant = True  # Error boundary: safer to keep than discard
+            prompt_parts.append(f'<document id="{i}">\n{doc.page_content[:1000]}\n</document>')
+        prompt = "\n".join(prompt_parts)
+
+        # To trigger the new batch schema, we temporarily append a keyword to the system prompt
+        # that our _infer_schema uses to recognize the batch format ("relevance_batch")
+        system_prompt = DOC_GRADER_SYSTEM + "\n[relevance_batch]"
+
+        try:
+            result = self._llm.invoke_json(prompt=prompt, system=system_prompt)
+            batch_results = result.get("results", [])
+        except Exception as e:
+            logger.warning(f"[DocGrader] Batch grading error: {e}. Defaulting to all relevant.")
+            batch_results = [{"relevant": "yes"}] * len(docs)
+
+        # Process results
+        for i, doc in enumerate(docs):
+            # Safe boundary: if the LLM returned fewer results than docs, default to relevant
+            if i < len(batch_results):
+                is_relevant = batch_results[i].get("relevant", "yes") == "yes"
+            else:
+                logger.warning(f"[DocGrader] Result mismatch for doc {i}. Defaulting to relevant.")
+                is_relevant = True
 
             if is_relevant:
                 relevant_docs.append(doc)

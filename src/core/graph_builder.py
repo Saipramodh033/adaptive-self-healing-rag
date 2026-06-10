@@ -65,6 +65,21 @@ def _escalation_node(state: GraphState) -> dict:
     }
 
 
+def _refusal_node(state: GraphState) -> dict:
+    """Terminal node: delivers a hard refusal for adversarial prompt injections."""
+    logger.warning("[Refusal] Adversarial query detected. Refusing request.")
+    return {
+        "generation": "I'm unable to do that. I'm here to help with ShopEase support queries such as orders, returns, shipping, and account issues.",
+        "is_escalated": True, # Treat as safe failure
+        "thought_trace": [
+            {
+                "step": "refusal",
+                "detail": "Adversarial request blocked",
+            }
+        ],
+    }
+
+
 def build_graph(
     llm: ILLMProvider,
     vectorstore: IVectorStore,
@@ -99,6 +114,7 @@ def build_graph(
     graph.add_node("hallucination_grader", hallucination_grader)
     graph.add_node("direct_responder", direct_responder)
     graph.add_node("escalate", _escalation_node)
+    graph.add_node("refusal", _refusal_node)
 
     # ── Wire edges ─────────────────────────────────────────────────────────────
     # Entry point (modern API — add_edge(START, ...) replaces set_entry_point)
@@ -110,6 +126,7 @@ def build_graph(
         route_after_classification,
         {
             "direct_responder": "direct_responder",
+            "refusal": "refusal",
             "retriever": "retriever",
         },
     )
@@ -148,6 +165,7 @@ def build_graph(
     # Terminal edges
     graph.add_edge("direct_responder", END)
     graph.add_edge("escalate", END)
+    graph.add_edge("refusal", END)
 
     # ── Compile ────────────────────────────────────────────────────────────────
     compiled = graph.compile()

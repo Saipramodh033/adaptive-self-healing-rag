@@ -35,9 +35,16 @@ class QueryRewriterNode:
         attempt = state["query_rewrite_count"] + 1
         logger.info(f"[QueryRewriter] Rewriting query (attempt {attempt}): '{original[:80]}...'")
 
+        # Progressive decomposition: each attempt uses a different strategy
+        attempt_hint = {
+            1: f"Original question: {original}",
+            2: f"SECOND ATTEMPT — focus on the primary intent only, ignore secondary questions.\nOriginal question: {original}",
+            3: f"FINAL ATTEMPT — extract just the core ShopEase policy keyword (2-4 words only).\nOriginal question: {original}",
+        }.get(attempt, f"Original question: {original}")
+
         try:
             rewritten = self._llm.invoke_text(
-                prompt=f"Original question: {original}",
+                prompt=attempt_hint,
                 system=QUERY_REWRITER_SYSTEM,
                 use_power=False,  # Rewrites use fast 8B (save 70B budget)
             ).strip()

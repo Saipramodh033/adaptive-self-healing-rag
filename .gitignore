@@ -50,3 +50,12 @@ chainlit.md
 # Logs
 *.log
 logs/
+
+# Scratch / one-off investigation files (not part of the project)
+scratch/
+comparison_output.md
+comparison_output_utf8.md
+
+# LangSmith experiment result caches (fetched on demand, not stored in repo)
+langsmith_results/
+experiment_cache/

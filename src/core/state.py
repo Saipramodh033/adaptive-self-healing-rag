@@ -34,11 +34,12 @@ class GraphState(TypedDict):
     """The user's original question. May be rewritten by QueryRewriterNode."""
 
     # ── Routing ────────────────────────────────────────────────────────────────
-    route_decision: Literal["chitchat", "rag"]
+    route_decision: Literal["chitchat", "rag", "out_of_domain"]
     """
     Routing outcome from RouterNode.
     - 'chitchat': friendly direct response, no retrieval
     - 'rag': full retrieval + grading + synthesis pipeline
+    - 'out_of_domain': adversarial or totally unrelated query
     """
 
     # ── Retrieval & Generation ─────────────────────────────────────────────────
@@ -46,6 +47,13 @@ class GraphState(TypedDict):
     """
     Retrieved documents. REPLACE behavior (last-write-wins).
     DocGraderNode overwrites this with only the relevant subset.
+    """
+
+    retrieved_doc_sources: List[str]
+    """
+    Filenames of ALL documents returned by the retriever (before grading).
+    Used by the Recall@4 and MRR evaluators to measure retrieval quality.
+    REPLACE behavior — set once by RetrieverNode, never overwritten.
     """
 
     generation: str

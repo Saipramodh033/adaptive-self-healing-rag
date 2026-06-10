@@ -25,13 +25,19 @@ logger = logging.getLogger(__name__)
 
 def route_after_classification(state: GraphState) -> str:
     """
-    After RouterNode: direct chitchat to responder, RAG queries to retriever.
+    After RouterNode: direct chitchat and out_of_domain to responder, adversarial to refusal, RAG to retriever.
 
-    Returns: 'direct_responder' | 'retriever'
+    Returns: 'direct_responder' | 'refusal' | 'retriever'
     """
     route = state.get("route_decision", "rag")
     logger.debug(f"[Edge] route_after_classification → {route}")
-    return "direct_responder" if route == "chitchat" else "retriever"
+    
+    if route in ("chitchat", "out_of_domain"):
+        return "direct_responder"
+    elif route == "adversarial":
+        return "refusal"
+    
+    return "retriever"
 
 
 def route_after_grading(state: GraphState, max_rewrites: int) -> str:
