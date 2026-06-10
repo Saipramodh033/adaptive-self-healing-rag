@@ -28,7 +28,7 @@
 
 The Chainlit UI exposes a live thought-trace for every query — showing exactly which nodes fired, what was classified, and whether the response was grounded.
 
-| Chitchat Routing | Full RAG Pipeline |
+| Full RAG Pipeline | Chitchat Routing |
 |:---:|:---:|
 | ![Chitchat demo](docs/assets/demo_chitchat.png) | ![RAG pipeline demo](docs/assets/demo_rag.png) |
 
