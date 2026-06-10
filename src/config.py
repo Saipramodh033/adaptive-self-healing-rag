@@ -78,7 +78,7 @@ def load_settings() -> Settings:
         embedding_model=_get("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"),
         max_query_rewrites=int(_get("MAX_QUERY_REWRITES", "2")),
         max_generation_retries=int(_get("MAX_GENERATION_RETRIES", "2")),
-        retrieval_top_k=int(_get("RETRIEVAL_TOP_K", "4")),
+        retrieval_top_k=int(_get("RETRIEVAL_TOP_K", "5")),
         chunk_size=int(_get("CHUNK_SIZE", "500")),
         chunk_overlap=int(_get("CHUNK_OVERLAP", "50")),
     )

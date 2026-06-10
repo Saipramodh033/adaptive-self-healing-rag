@@ -13,7 +13,7 @@ mega-prompt that instructs the LLM to self-regulate.
 
 PARITY CONSTRAINTS (must match Adaptive RAG exactly):
   - Same ChromaDB collection and embedding model (BAAI/bge-small-en-v1.5)
-  - Same Top-K retrieval count (4)
+  - Same Top-K retrieval count (5)
   - Same generator model (llama-3.3-70b-versatile)
   - Same temperature (0.0)
   - Same output schema: {"answer": str, "documents_used": int, "is_escalated": bool}
@@ -90,8 +90,9 @@ async def predict_traditional_rag(inputs: dict[str, Any]) -> dict[str, Any]:
     question = inputs["question"]
     logger.info(f"[TraditionalRAG] Processing: {question!r}")
 
-    # ── Step 1: Retrieve (Top-K = 4, same as Adaptive RAG) ────────────────────
-    docs = _vectorstore.similarity_search(question, k=4)
+    # ── Step 1: Retrieve (Top-K = 5, same as Adaptive RAG) ────────────────────
+    settings = load_settings()
+    docs = _vectorstore.similarity_search(question, k=settings.retrieval_top_k)
     documents_used = len(docs)
 
     # ── Step 2: Format context from retrieved docs ─────────────────────────────

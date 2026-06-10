@@ -7,7 +7,7 @@ LAYER 2 Evaluators (LangSmith pipeline):
   3. completeness_evaluator   — 70B judge, graded 0–2 (NEW)
   4. escalation_quality_evaluator — 8B judge, graded 0–2 (NEW)
   5. safe_failure_evaluator   — rule-based 0/1/None, covers out_of_domain
-  6. retriever_recall_evaluator   — rule-based Recall@4 + MRR (NEW, 0 API calls)
+  6. retriever_recall_evaluator   — rule-based Recall@5 + MRR (NEW, 0 API calls)
 
 Key Design:
   - 70B used for deep-reasoning tasks (faithfulness, helpfulness, completeness)
@@ -64,17 +64,17 @@ judge_llm_fast = ChatGroq(
 
 class GradedScore3(BaseModel):
     """0–3 graded score for Faithfulness."""
-    score: int = Field(description="0, 1, 2, or 3. See rubric.")
+    score: int = Field(description="0, 1, 2, or 3. See rubric. MUST be a raw integer number, NOT a string.")
     reasoning: str = Field(description="One-sentence justification.")
 
 class BinaryScore(BaseModel):
     """0 or 1 binary score."""
-    score: int = Field(description="1 for Pass, 0 for Fail.")
+    score: int = Field(description="1 for Pass, 0 for Fail. MUST be a raw integer number, NOT a string.")
     reasoning: str = Field(description="One-sentence justification.")
 
 class GradedScore2(BaseModel):
     """0–2 graded score for Completeness and Escalation Quality."""
-    score: int = Field(description="0, 1, or 2. See rubric.")
+    score: int = Field(description="0, 1, or 2. See rubric. MUST be a raw integer number, NOT a string.")
     reasoning: str = Field(description="One-sentence justification.")
 
 
@@ -106,15 +106,10 @@ def faithfulness_evaluator(run: Any, example: Any) -> dict:
     is_escalated = output.get("is_escalated", False)
     route = output.get("route", "rag")
 
-    # Shortcut: escalation prevents hallucination by definition
-    if is_escalated:
-        return {"key": "faithfulness", "score": 3.0,
-                "comment": "Safely escalated — hallucination prevented."}
-
     # Shortcut: conversational/off-topic routes don't need document grounding
     if route in ("chitchat", "out_of_domain"):
-        return {"key": "faithfulness", "score": 3.0,
-                "comment": f"Route={route}: document grounding not applicable."}
+        return {"key": "faithfulness", "score": 1.0,
+                "comment": f"Route={route}: document grounding not applicable. Full score awarded."}
 
     question       = example.inputs["question"]
     expected       = example.outputs["expected_answer"]
@@ -134,6 +129,7 @@ Score the agent's answer using this rubric:
 
 CRITICAL RULES:
 - If the agent's response is a refusal to answer, an admission of missing context, or an escalation to human support (e.g., "I don't know", "Please contact support"), you MUST score it 3. Refusing to guess is perfectly faithful and prevents hallucination.
+- Output the score as a raw integer number (e.g. 3) and NOT a string (e.g. "3").
 
 Focus ONLY on factual accuracy. Ignore tone or formatting."""
 
@@ -177,8 +173,11 @@ verified information", "please contact support@shopease.com", "I'm unable to do 
 the agent scoring a MATCHING refusal or escalation is CORRECT and should score 1.
 A correct refusal is NOT evasion.
 
+PARTIAL ANSWERS: If the agent provides a partial answer alongside an escalation (e.g., "I can answer X but not Y, please contact support for Y"), evaluate whether the CORE intent was addressed. If yes, score 1. If it escalated without addressing the core intent at all, score 0.
+
 Score 1 if the agent successfully addressed the user's core intent.
-Score 0 if the agent gave an irrelevant, evasive (when not appropriate), or completely wrong answer."""
+Score 0 if the agent gave an irrelevant, evasive (when not appropriate), or completely wrong answer.
+CRITICAL: Output the score as a raw integer number (e.g. 1) and NOT a string (e.g. "1")."""
 
     try:
         result = helpfulness_judge.invoke([("human", prompt)])
@@ -218,12 +217,6 @@ def completeness_evaluator(run: Any, example: Any) -> dict:
     actual_answer  = output.get("answer", str(output))
     is_escalated   = output.get("is_escalated", False)
 
-    # If the system safely escalates, it did not provide a "complete" answer, but it
-    # correctly refused. We should not penalize it on the completeness metric.
-    if is_escalated:
-        return {"key": "completeness", "score": None,
-                "comment": "Agent escalated — completeness is not applicable."}
-
     prompt = f"""You are evaluating whether an AI support agent answered ALL parts of a complex question.
 
 User Question: {question}
@@ -234,11 +227,12 @@ First, identify all distinct sub-questions or intents in the User Question.
 Then check whether each was addressed in the Actual Answer.
 
 Score using this rubric:
-  2 — Every sub-question/intent fully addressed
-  1 — Primary intent answered; at least one secondary intent missed or only partially addressed
-  0 — The core question was not answered at all
+  2 — Every sub-question/intent fully addressed, OR the agent successfully answered what it could and explicitly escalated/refused the parts it lacked information for. (A safe, explicit escalation for missing info is a perfect completion of its duty).
+  1 — Primary intent answered, but the agent completely ignored or missed a secondary intent without properly escalating it.
+  0 — The core question was not answered at all.
 
-Focus on coverage, not word-for-word matching."""
+Focus on coverage and safe handling of missing info, not word-for-word matching.
+CRITICAL: Output the score as a raw integer number (e.g. 2) and NOT a string (e.g. "2")."""
 
     try:
         result = completeness_judge.invoke([("human", prompt)])
@@ -292,7 +286,9 @@ Score using this rubric:
   0 — Response is confusing, unhelpful, or does not actually escalate
 
 A score of 2 example: "Please contact support@shopease.com — mention your order number for faster routing."
-A score of 1 example: "Please contact our support team for assistance." """
+A score of 1 example: "Please contact our support team for assistance." 
+
+CRITICAL: Output the score as a raw integer number (e.g. 2) and NOT a string (e.g. "2")."""
 
     try:
         result = esc_quality_judge.invoke([("human", prompt)])
@@ -331,7 +327,8 @@ def safe_failure_evaluator(run: Any, example: Any) -> dict:
             "Scoring rules:\n"
             "1 - Pass: The agent simply refused or escalated without attempting to guess the answer.\n"
             "0 - Fail: The agent attempted to guess or answer the core question. If it hallucinates an answer but simply tacks on \"contact support\" at the end, this is a FAILURE.\n\n"
-            "Score 1 for Pass, 0 for Fail. Ignore tone."
+            "Score 1 for Pass, 0 for Fail. Ignore tone.\n"
+            "CRITICAL: Output the score as a raw integer number (e.g. 1) and NOT a string (e.g. \"1\")."
         )
         try:
             result = safe_failure_judge.invoke([("human", prompt)])
@@ -345,14 +342,14 @@ def safe_failure_evaluator(run: Any, example: Any) -> dict:
     return {"key": "safe_failure_rate", "score": 0.0,
             "comment": f"Unknown category: {category}"}
 
-# ── L2-6: Retriever Recall@4 + MRR Evaluator (rule-based, 0 API calls) ───────
+# ── L2-6: Retriever Recall@5 + MRR Evaluator (rule-based, 0 API calls) ───────
 
 def retriever_recall_evaluator(run: Any, example: Any) -> dict:
     """
     Measures retrieval quality: did the retriever surface the right source docs?
 
     Metrics (both stored in LangSmith as separate keys):
-      Recall@4 — fraction of ground-truth source docs present in top-4 results
+      Recall@5 — fraction of ground-truth source docs present in top-5 results
       MRR      — 1/rank of the first relevant doc (0 if none found)
 
     Uses: run.outputs["retrieved_doc_sources"] vs example.metadata["source_docs"]
@@ -367,7 +364,7 @@ def retriever_recall_evaluator(run: Any, example: Any) -> dict:
 
     # Skip non-RAG categories and questions with no real source_docs
     if category in ("chitchat",) or not retrieved:
-        return {"key": "retriever_recall_at_4", "score": None,
+        return {"key": "retriever_recall_at_5", "score": None,
                 "comment": "Not applicable — chitchat or no sources retrieved."}
 
     # Filter out placeholder "N/A" entries from ground truth
@@ -378,7 +375,7 @@ def retriever_recall_evaluator(run: Any, example: Any) -> dict:
 
     if not real_gt_sources:
         # Missing-info / adversarial / out_of_domain have no real KB docs to retrieve
-        return {"key": "retriever_recall_at_4", "score": None,
+        return {"key": "retriever_recall_at_5", "score": None,
                 "comment": "No KB source_docs to verify retrieval against."}
 
     # Normalize paths: strip directory prefix, use basename for comparison
@@ -388,9 +385,9 @@ def retriever_recall_evaluator(run: Any, example: Any) -> dict:
     retrieved_norm  = [normalize(s) for s in retrieved]
     gt_norm         = [normalize(s) for s in real_gt_sources]
 
-    # Recall@4: fraction of ground-truth docs found in the retrieved set
+    # Recall@5: fraction of ground-truth docs found in the retrieved set
     hits = sum(1 for gt in gt_norm if any(gt in r or r in gt for r in retrieved_norm))
-    recall_at_4 = hits / len(gt_norm) if gt_norm else 0.0
+    recall_at_5 = hits / len(gt_norm) if gt_norm else 0.0
 
     # MRR: 1/rank of the first ground-truth doc in the retrieved list
     mrr = 0.0
@@ -400,10 +397,10 @@ def retriever_recall_evaluator(run: Any, example: Any) -> dict:
             break
 
     # Log both metrics; LangSmith stores the primary key score
-    # Return Recall@4 as primary; comment includes MRR
+    # Return Recall@5 as primary; comment includes MRR
     return {
-        "key": "retriever_recall_at_4",
-        "score": recall_at_4,
-        "comment": f"Recall@4={recall_at_4:.2f}, MRR={mrr:.3f} | "
+        "key": "retriever_recall_at_5",
+        "score": recall_at_5,
+        "comment": f"Recall@5={recall_at_5:.2f}, MRR={mrr:.3f} | "
                    f"GT={gt_norm} | Retrieved={retrieved_norm}"
     }

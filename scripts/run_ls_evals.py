@@ -21,6 +21,7 @@ import logging
 import os
 import sys
 import time
+import argparse
 
 # Ensure Python can find both 'scripts' and 'src' modules from the project root
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -66,7 +67,7 @@ def get_scores_for_project(client, project_name: str, system_name: str):
     for run_id in run_ids:
         feedbacks.extend(list(client.list_feedback(run_ids=[run_id])))
     
-    scores = {"faithfulness": [], "helpfulness": [], "completeness": [], "safe_failure_rate": [], "escalation_quality": [], "retriever_recall_at_4": []}
+    scores = {"faithfulness": [], "helpfulness": [], "completeness": [], "safe_failure_rate": [], "escalation_quality": [], "retriever_recall_at_5": []}
     
     for f in feedbacks:
         if f.score is not None and f.key in scores:
@@ -89,8 +90,8 @@ def get_scores_for_project(client, project_name: str, system_name: str):
     return composite
 
 
-async def main():
-    logger.info("Starting Layer 2 + 3 LangSmith Benchmark Run...")
+async def main(target: str = "all"):
+    logger.info(f"Starting Layer 2 + 3 LangSmith Benchmark Run (Target: {target})...")
 
     settings = load_settings()
     client = Client()
@@ -167,40 +168,48 @@ async def main():
     ]
 
     # ── 3. Run Traditional RAG Evaluation ──────────────────────────────────────
-    logger.info("\n" + "="*50)
-    logger.info("RUNNING BENCHMARK: TRADITIONAL RAG")
-    logger.info("="*50)
-    
-    trad_results = await aevaluate(
+    if target in ("all", "traditional"):
+        logger.info("\n" + "="*50)
+        logger.info("RUNNING BENCHMARK: TRADITIONAL RAG")
+        logger.info("="*50)
+        
+        trad_results = await aevaluate(
         throttled_traditional_rag,
         data=DATASET_NAME,
         evaluators=evaluators,
         experiment_prefix="Traditional-RAG-Baseline",
         max_concurrency=1,  # CRITICAL: Do not run questions in parallel
-    )
+        )
     
     # ── 4. Run Adaptive RAG Evaluation ─────────────────────────────────────────
-    logger.info("\n" + "="*50)
-    logger.info("RUNNING BENCHMARK: ADAPTIVE RAG")
-    logger.info("="*50)
-    
-    adaptive_results = await aevaluate(
+    if target in ("all", "adaptive"):
+        logger.info("\n" + "="*50)
+        logger.info("RUNNING BENCHMARK: ADAPTIVE RAG")
+        logger.info("="*50)
+        
+        adaptive_results = await aevaluate(
         throttled_adaptive_rag,
         data=DATASET_NAME,
         evaluators=evaluators,
         experiment_prefix="Adaptive-RAG-System",
         max_concurrency=1,  # CRITICAL: Do not run questions in parallel
-    )
+        )
     
     # ── 5. Post-Run Composite Score Calculation ────────────────────────────────
     # We fetch the experiment results directly from LangSmith API
     logger.info("\nFetching results to compute composite scores...")
     
-    get_scores_for_project(client, trad_results.experiment_name, "Traditional RAG Baseline")
-    get_scores_for_project(client, adaptive_results.experiment_name, "Adaptive RAG System")
+    if target in ("all", "traditional"):
+        get_scores_for_project(client, trad_results.experiment_name, "Traditional RAG Baseline")
+    if target in ("all", "adaptive"):
+        get_scores_for_project(client, adaptive_results.experiment_name, "Adaptive RAG System")
     
     logger.info("\nBenchmark run complete! Full detailed metrics are in the LangSmith Dashboard.")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Run LangSmith evals.")
+    parser.add_argument("--target", choices=["all", "adaptive", "traditional"], default="all", help="Target system to run")
+    args = parser.parse_args()
+    
+    asyncio.run(main(target=args.target))

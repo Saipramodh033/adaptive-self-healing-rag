@@ -46,7 +46,13 @@ class DocGraderNode:
         grading_details = []
 
         # Build batched prompt
-        prompt_parts = [f"User Question: {question}\n\nDocuments to evaluate:"]
+        prompt_parts = [
+            f"User Question: {question}\n\n"
+            f"CRITICAL INSTRUCTION: There are EXACTLY {len(docs)} documents below. "
+            f"Your JSON array MUST contain EXACTLY {len(docs)} items. "
+            f"Stop generating immediately after the {len(docs)}th item.\n\n"
+            f"Documents to evaluate:"
+        ]
         for i, doc in enumerate(docs):
             prompt_parts.append(f'<document id="{i}">\n{doc.page_content[:1000]}\n</document>')
         prompt = "\n".join(prompt_parts)
