@@ -104,7 +104,7 @@ adaptive-rag-customer-support/
 │   │   ├── policies/               # Refund, shipping, warranty policies
 │   │   ├── faqs/                   # Orders, account management, payments
 │   │   └── troubleshooting/        # Delivery issues, defects
-│   └── eval_dataset.json           # 25-question golden evaluation dataset
+│   └── eval_dataset_v2.json        # 50-question golden evaluation dataset
 │
 ├── docs/                           # Extended documentation
 │   ├── assets/                     # Screenshots and media
@@ -172,7 +172,7 @@ adaptive-rag-customer-support/
 | **Power LLM** | `llama-3.3-70b-versatile` (Groq) | Final response synthesis only (1,000 RPD — budget-guarded with 8B fallback) |
 | **Vector Store** | ChromaDB (persistent, local) | CPU-only vector search with cosine similarity |
 | **Embeddings** | `BAAI/bge-small-en-v1.5` | 384-dim local embeddings, ~133 MB disk, ~300–600 MB RAM |
-| **Evaluation** | LangSmith + Groq LLM-as-Judge | 6-metric benchmark comparing Adaptive vs Traditional RAG on a 25-question golden dataset |
+| **Evaluation** | LangSmith + Groq LLM-as-Judge | 6-metric benchmark comparing Adaptive vs Traditional RAG on a 50-question golden dataset |
 
 ---
 
