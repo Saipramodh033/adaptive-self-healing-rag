@@ -5,7 +5,7 @@
 ![LangSmith](https://img.shields.io/badge/Evaluation-LangSmith-orange?style=flat-square)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-> An Adaptive Self-Healing RAG system for e-commerce customer support. It routes queries intelligently, grades retrieved documents, rewrites failed searches, and fact-checks every response before delivery. The result is a measurably safer and more reliable system compared to a standard RAG pipeline, with 17% more grounded responses and 33% better escalation quality, benchmarked using a custom LLM-as-a-Judge evaluation framework on LangSmith.
+> An Adaptive Self-Healing RAG system for e-commerce customer support. It routes queries intelligently, grades retrieved documents, rewrites failed searches, and fact-checks every response before delivery. The result is a measurably safer and more reliable system compared to a standard RAG pipeline, yielding a 19.3% increase in factual grounding and a 12.5% improvement in escalation quality, while reducing API compute costs by ~47%. Benchmarked using a custom LLM-as-a-Judge evaluation framework on LangSmith.
 
 ---
 
