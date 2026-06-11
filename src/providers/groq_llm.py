@@ -196,6 +196,11 @@ class GroqLLMProvider(ILLMProvider):
                     delay *= 2  # Exponential backoff
             except Exception as e:
                 last_error = e
+                # If it's a 400 Bad Request (like tool_use_failed), do not retry. It will just fail again and waste tokens.
+                if "400" in str(e) or "invalid_request_error" in str(e):
+                    logger.warning(f"Deterministic 400 error caught. Failing fast to trigger fallback...")
+                    raise e
+                    
                 if attempt < max_retries:
                     logger.warning(f"LLM error (attempt {attempt+1}): {e}. Retrying ...")
                     time.sleep(delay)

@@ -19,6 +19,8 @@ Key Design:
 import logging
 import os
 import sys
+import threading
+import time
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -58,6 +60,9 @@ judge_llm_fast = ChatGroq(
     api_key=JUDGE_API_KEY,
     max_retries=3,
 )
+
+# Global lock to force LangSmith evaluators to run sequentially (concurrency=1)
+evaluator_lock = threading.Lock()
 
 
 # ── Structured Output Schemas ─────────────────────────────────────────────────
@@ -134,7 +139,9 @@ CRITICAL RULES:
 Focus ONLY on factual accuracy. Ignore tone or formatting."""
 
     try:
-        result = faithfulness_judge.invoke([("human", prompt)])
+        with evaluator_lock:
+            time.sleep(2.0)  # Slight stagger to let bucket drain
+            result = faithfulness_judge.invoke([("human", prompt)])
         # Normalize 0–3 to 0–1 for LangSmith aggregation
         return {"key": "faithfulness", "score": result.score / 3.0,
                 "comment": result.reasoning}
@@ -180,7 +187,9 @@ Score 0 if the agent gave an irrelevant, evasive (when not appropriate), or comp
 CRITICAL: Output the score as a raw integer number (e.g. 1) and NOT a string (e.g. "1")."""
 
     try:
-        result = helpfulness_judge.invoke([("human", prompt)])
+        with evaluator_lock:
+            time.sleep(2.0)
+            result = helpfulness_judge.invoke([("human", prompt)])
         return {"key": "helpfulness", "score": float(result.score),
                 "comment": result.reasoning}
     except Exception as e:
@@ -235,7 +244,9 @@ Focus on coverage and safe handling of missing info, not word-for-word matching.
 CRITICAL: Output the score as a raw integer number (e.g. 2) and NOT a string (e.g. "2")."""
 
     try:
-        result = completeness_judge.invoke([("human", prompt)])
+        with evaluator_lock:
+            time.sleep(2.0)
+            result = completeness_judge.invoke([("human", prompt)])
         # Normalize 0–2 to 0–1
         return {"key": "completeness", "score": result.score / 2.0,
                 "comment": result.reasoning}
@@ -291,7 +302,9 @@ A score of 1 example: "Please contact our support team for assistance."
 CRITICAL: Output the score as a raw integer number (e.g. 2) and NOT a string (e.g. "2")."""
 
     try:
-        result = esc_quality_judge.invoke([("human", prompt)])
+        with evaluator_lock:
+            time.sleep(2.0)
+            result = esc_quality_judge.invoke([("human", prompt)])
         # Normalize 0–2 to 0–1
         return {"key": "escalation_quality", "score": result.score / 2.0,
                 "comment": result.reasoning}
@@ -331,7 +344,9 @@ def safe_failure_evaluator(run: Any, example: Any) -> dict:
             "CRITICAL: Output the score as a raw integer number (e.g. 1) and NOT a string (e.g. \"1\")."
         )
         try:
-            result = safe_failure_judge.invoke([("human", prompt)])
+            with evaluator_lock:
+                time.sleep(2.0)
+                result = safe_failure_judge.invoke([("human", prompt)])
             return {"key": "safe_failure_rate", "score": float(result.score),
                     "comment": result.reasoning}
         except Exception as e:

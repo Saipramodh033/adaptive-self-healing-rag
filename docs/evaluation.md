@@ -54,31 +54,35 @@ During the first benchmark run, the Completeness evaluator was discovered to be 
 
 ---
 
-## Benchmark Results
+## Benchmark Results (50-Question Golden Dataset)
 
 | Metric | Traditional RAG | Adaptive RAG | Delta |
 |---|---|---|---|
-| Faithfulness | 0.707 | **0.827** | +17% |
-| Helpfulness | **0.880** | 0.800 | -9% |
-| Completeness | **0.750** | 0.650 | -13% |
-| Escalation Quality | 0.562 | **0.750** | +33% |
-| Safe Failure Rate | 0.875 | 0.875 | — |
-| Retriever Recall@5 | **0.900** | 0.893 | -0.7% |
+| Faithfulness | 0.720 | **0.913** | +19.3% |
+| Safe Failure Rate | 0.875 | **0.938** | +6.2% |
+| Escalation Quality | 0.594 | **0.719** | +12.5% |
+| Helpfulness | **0.860** | 0.760 | -10.0% |
+| Completeness | **0.750** | 0.600 | -15.0% |
+| Retriever Recall@5 | **0.933** | 0.927 | -0.6% |
 
-> **Traditional RAG:** `Traditional-RAG-Baseline-a61a5759` | 25 questions | All evaluations complete
-> **Adaptive RAG:** `Adaptive-RAG-System-825d1591` | 25 questions | All evaluations complete
+> **Traditional RAG:** `Traditional-RAG-Baseline-V2` combined runs | 50 evaluations complete
+> **Adaptive RAG:** `Adaptive-RAG-System-V2-Patch` chronologically merged | 50 evaluations complete
 
 ### The Safety Win
 
-The HallucinationGrader loop is working exactly as designed. The Traditional RAG's Faithfulness score of 0.707 indicates that across 25 questions, responses frequently contained partially or fully ungrounded claims — scores of 0.33 and 0.67 were common throughout, not just the 2 complete failures at 0.0. The Adaptive RAG's score of 0.827 reflects the HallucinationGrader actively catching and suppressing these before delivery. Every flagged response is either regenerated with corrected grounding or escalated to a human agent — never delivered as-is.
+The HallucinationGrader loop is working exactly as designed. The Traditional RAG's Faithfulness score of 0.720 indicates that across 50 questions, responses frequently contained partially or fully ungrounded claims. The Adaptive RAG's massive score of **0.913 (+19.3%)** reflects the HallucinationGrader actively catching and suppressing these before delivery. Every flagged response is either regenerated with corrected grounding or escalated to a human agent — never delivered as-is.
 
 ### The Safety Tax
 
-Helpfulness dropped by 9% (0.880 → 0.800). This is the expected trade-off of strict guardrails. When the DocGrader filters retrieved documents aggressively, the Generator receives less context and safely escalates instead of answering. During the benchmark, the DocGrader was found to be over-aggressive — marking partially relevant documents as irrelevant. A Leniency Rule was added to the grader prompt, recovering Helpfulness from 0.720 to 0.800 without affecting Faithfulness. The remaining 8% gap reflects genuine cases where the knowledge base lacked the answer — and in those cases, a safe escalation is the correct behavior, not a failure.
+Helpfulness dropped by 10% (0.860 → 0.760) and Completeness dropped by 15% (0.750 → 0.600). This is the expected trade-off of strict guardrails. When the DocGrader filters retrieved documents aggressively, the Generator receives less context and safely escalates instead of answering (or dropping secondary questions). During the benchmark, the DocGrader was found to be slightly over-aggressive. A Leniency Rule was added to the grader prompt, recovering some completeness, but the remaining gap reflects genuine cases where the 8B grader model threw away context to protect the 70B model from hallucinating.
+
+### Compute & Cost Efficiency
+
+By intercepting adversarial/chitchat queries and heavily filtering documents with a fast 8B model, the Adaptive RAG drastically reduces the payload sent to the expensive 70B model. In a simulated enterprise workload (100,000 queries/month), the Adaptive system achieves an estimated **47% reduction in API compute costs** compared to Traditional RAG, which naively sends all 6 documents to the 70B model for every single query. [Read the detailed cost breakdown analysis](cost-analysis.md).
 
 ### What This Means in Production
 
-For a customer support bot, the Faithfulness improvement outweighs the Helpfulness cost. Air Canada was held liable when its chatbot invented a bereavement refund policy that did not exist. A safe escalation — *"I don't have verified information about this, please contact support@shopease.com"* — is a correct, professional response. The Escalation Quality improvement (0.562 → 0.750) further validates this: the Adaptive system doesn't just escalate more, it escalates better — with clearer messaging, the right contact channel, and appropriate context for the human agent picking up the ticket.
+For a customer support bot, the Faithfulness improvement outweighs the Helpfulness/Completeness cost. Air Canada was held liable when its chatbot invented a bereavement refund policy that did not exist. A safe, polite escalation is a correct, professional response. The Escalation Quality improvement (+12.5%) further validates this: the Adaptive system doesn't just escalate more, it escalates better — with clearer messaging, the right contact channel, and appropriate context for the human agent picking up the ticket. And it does this while cutting inference costs nearly in half.
 
 ---
 
@@ -98,4 +102,4 @@ python scripts/run_ls_evals.py --target traditional
 
 ---
 
-← [Back to README](../README.md)
+[Back to README](../README.md)
