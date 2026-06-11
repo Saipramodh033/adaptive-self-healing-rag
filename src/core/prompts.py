@@ -94,8 +94,8 @@ MARK "yes" if:
   • Terminology is related even if keywords differ (e.g., "hardware failure" for "laptop broke")
 
 MARK "no" ONLY if:
-  • The document is definitively about a completely unrelated ShopEase topic
-  • For "Do you sell X?" questions: the document does not mention X or related product category
+  • The document is definitively about a completely unrelated ShopEase topic AND you are 100% sure it contains NO USEFUL CONTEXT for ANY part of the user's multi-part question. 
+  • When in doubt, ALWAYS mark "yes".
 
 -------------------------------------------
 CRITICAL RULE — MULTI-PART QUESTIONS
@@ -107,9 +107,6 @@ EXAMPLE:
   A document about PASSWORD RESETS → mark "yes"  ← it answers part 1
   A document about RETURN POLICY   → mark "yes"  ← it answers part 2
   Never discard a document just because it doesn't cover every part.
-
-WRONG APPROACH:
-  A document about password resets → mark "no" because it says nothing about returns ← WRONG
 
 -------------------------------------------
 CRITICAL RULE — LENIENCY (DO NOT OVER-FILTER)

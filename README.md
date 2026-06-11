@@ -178,20 +178,23 @@ adaptive-rag-customer-support/
 
 ## Evaluation Framework
 
-The system is benchmarked against a Traditional RAG baseline (identical guardrails, no self-healing loops) using a custom LLM-as-a-Judge pipeline on LangSmith. Both systems were evaluated on the same 25-question golden dataset across 6 categories — including adversarial prompts, missing-information queries, and multi-intent questions — to test graceful degradation, not just happy-path success.
+The system is benchmarked against a Traditional RAG baseline using a custom LLM-as-a-Judge pipeline on LangSmith. Both systems were evaluated on a comprehensive 50-question golden dataset covering adversarial prompts, missing-information queries, and multi-intent questions to test graceful degradation.
 
 | Metric | Traditional RAG | Adaptive RAG | Delta |
 |---|---|---|---|
-| Faithfulness | 0.707 | **0.827** | +17% ↑ |
-| Helpfulness | **0.880** | 0.800 | -9% ↓ |
-| Completeness | **0.750** | 0.650 | -13% ↓ |
-| Escalation Quality | 0.562 | **0.750** | +33% ↑ |
-| Safe Failure Rate | 0.875 | 0.875 | — |
-| Retriever Recall@5 | **0.900** | 0.893 | -0.7% |
+| Faithfulness | 0.720 | **0.913** | +19.3% |
+| Safe Failure Rate | 0.875 | **0.938** | +6.2% |
+| Escalation Quality | 0.594 | **0.719** | +12.5% |
+| Helpfulness | **0.860** | 0.760 | -10.0% |
+| Completeness | **0.750** | 0.600 | -15.0% |
+| Retriever Recall@5 | **0.933** | 0.927 | -0.6% |
 
-> The Adaptive RAG's HallucinationGrader loop measurably improved response groundedness (+17%) and escalation quality (+33%). The 9% Helpfulness trade-off reflects the expected cost of strict guardrails — in a customer support context, a safe escalation is always preferable to a hallucinated answer.
+> **The Trade-off:** The Adaptive system sacrifices 15% Completeness (often refusing to answer secondary questions if it lacks 100% confidence) in exchange for a massive **+19.3% boost in Faithfulness and factual safety**. In a customer support context, an incomplete answer with a polite escalation is infinitely better than a hallucinated policy.
 
-[Full evaluation design, dataset breakdown, fairness decisions, and analysis →](docs/evaluation.md)
+### Cost & Compute Efficiency
+By intercepting adversarial/chitchat queries and heavily filtering documents with a fast 8B model, the Adaptive RAG drastically reduces the payload sent to the expensive 70B model. In a simulated enterprise workload (100k queries/month), the Adaptive system achieves a **~47% reduction in API compute costs** compared to Traditional RAG, which naively sends all 6 documents to the 70B model for every single query. [Read the detailed cost breakdown analysis](docs/cost-analysis.md).
+
+[Read the full evaluation design, dataset breakdown, and fairness analysis](docs/evaluation.md)
 
 ---
 
