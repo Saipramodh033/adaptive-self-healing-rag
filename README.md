@@ -187,7 +187,7 @@ The system is benchmarked against a Traditional RAG baseline using a custom LLM-
 | Escalation Quality | 0.594 | **0.719** | +12.5% |
 | Helpfulness | **0.860** | 0.760 | -10.0% |
 | Completeness | **0.750** | 0.600 | -15.0% |
-| Retriever Recall@5 | **0.933** | 0.927 | -0.6% |
+| Retriever Recall@6 | **0.933** | 0.927 | -0.6% |
 
 > **The Trade-off:** The Adaptive system sacrifices 15% Completeness (often refusing to answer secondary questions if it lacks 100% confidence) in exchange for a massive **+19.3% boost in Faithfulness and factual safety**. In a customer support context, an incomplete answer with a polite escalation is infinitely better than a hallucinated policy.
 
@@ -206,7 +206,7 @@ Three non-trivial issues were discovered and fixed during development:
 - **Silent Evaluator Zeroes** — The LLM-as-a-Judge returned `"3"` (string) instead of `3` (integer), causing Pydantic crashes that silently assigned 0.0 scores to correct answers.
 - **Biased Completeness Rubric** — The evaluator penalized the agent for correctly escalating the unanswerable half of a multi-intent question. The rubric was rewritten to award full marks for correct escalations.
 
-[Full diagnosis and fixes →](docs/engineering-challenges.md)
+[Full diagnosis and fixes - click here](docs/engineering-challenges.md)
 
 ---
 
@@ -232,13 +232,13 @@ The system logs a warning at 80% daily 70B usage and automatically falls back to
 The project enforces a strict one-way dependency chain:
 
 ```
-Presentation  →  API Layer  →  Core Layer  →  Provider Layer
+Presentation > API Layer > Core Layer > Provider Layer
   (Chainlit)     (FastAPI)    (LangGraph)     (Interfaces)
 ```
 
-- Swap Groq → OpenAI: edit **one file** (`src/providers/groq_llm.py`)
-- Swap ChromaDB → Pinecone: edit **one file** (`src/providers/chroma_store.py`)
-- Swap BGE → OpenAI embeddings: edit **one file** (`src/providers/bge_embeddings.py`)
+- Swap Groq to OpenAI: edit **one file** (`src/providers/groq_llm.py`)
+- Swap ChromaDB to Pinecone: edit **one file** (`src/providers/chroma_store.py`)
+- Swap BGE to OpenAI embeddings: edit **one file** (`src/providers/bge_embeddings.py`)
 
 The Core layer has **zero imports** from FastAPI, Chainlit, Groq, or ChromaDB.
 
@@ -246,7 +246,7 @@ The Core layer has **zero imports** from FastAPI, Chainlit, Groq, or ChromaDB.
 
 The system was not built once and evaluated at the end. Every change to a prompt, rubric, or retrieval parameter was followed by a full benchmark re-run to measure exact impact. This is the same feedback loop used in production ML systems — and it is how the Helpfulness score was recovered from 0.720 to 0.800 without sacrificing Faithfulness.
 
-[All design decisions →](docs/design-decisions.md)
+[All design decisions - click here](docs/design-decisions.md)
 
 ---
 
@@ -379,10 +379,10 @@ The 70B daily budget guard ensures the system **never crashes** at the limit —
 
 ## Enterprise Roadmap
 
-- **Hybrid Search (BM25 + dense vector)** — Close the remaining 10.7% Retriever Recall gap with keyword-aware retrieval
+- **Hybrid Search (BM25 + dense vector)** — Close the remaining 7.3% Retriever Recall gap with keyword-aware retrieval
 - **Expand KB to 60+ documents** — Reduce missing-info escalations; target Helpfulness ≥ 0.90
 - **Multi-query retrieval** — Generate 3 query variants per question to increase retrieval surface area for complex queries
 - **Conversation memory** — Enable multi-turn support threads without re-escalating context from prior turns
 - **Production LLM provider** — Replace Groq free tier with Azure OpenAI / AWS Bedrock for production SLAs and parallel evaluation
 
-[Full evidence-backed roadmap →](docs/roadmap.md)
+[Full evidence-backed roadmap - click here](docs/roadmap.md)

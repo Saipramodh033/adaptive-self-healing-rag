@@ -31,7 +31,7 @@ The 70B model is reserved exclusively for the Generator: the only node producing
 
 `GROQ_API_KEY_JUDGE` is a separate credential from the inference key (`GROQ_API_KEY`). This prevents the evaluation framework's LLM-as-Judge calls from consuming the production inference budget during benchmark runs — they operate against completely independent rate limits.
 
-A 25-question benchmark with 6 evaluators per question and 2 systems requires 300 LLM judge calls. Running this on the same API key as the production system would exhaust the 70B daily quota mid-benchmark, corrupting both the benchmark results and the system's availability to answer real questions. The isolated key is a clean boundary between evaluation infrastructure and production infrastructure.
+A 50-question benchmark with 6 evaluators per question and 2 systems requires 600 LLM judge calls. Running this on the same API key as the production system would exhaust the 70B daily quota mid-benchmark, corrupting both the benchmark results and the system's availability to answer real questions. The isolated key is a clean boundary between evaluation infrastructure and production infrastructure.
 
 ---
 
@@ -63,7 +63,7 @@ The Adaptive self-healing architecture earns its complexity at **200+ document k
 - Multi-document cross-reference queries are the norm rather than the exception
 - Query rewriting is required to bridge natural language phrasing and technical policy vocabulary
 
-At the current demo knowledge base of ~30 documents, Traditional RAG with a well-crafted 70B prompt is a credible competitor — and the benchmark results reflect this. The Adaptive system's Faithfulness advantage (+17%) is real and meaningful, but the Helpfulness gap (-9%) shows that strict guardrails cost more at small scale. The architecture is the correct foundation for production — not over-engineering for a demo. The benchmark validates both the safety benefit and the expected cost, at the scale where the cost/benefit ratio is most challenging.
+At the current demo knowledge base of ~30 documents, Traditional RAG with a well-crafted 70B prompt is a credible competitor — and the benchmark results reflect this. The Adaptive system's Faithfulness advantage (+19.3%) is real and meaningful, but the Helpfulness gap (-10.0%) shows that strict guardrails cost more at small scale. The architecture is the correct foundation for production — not over-engineering for a demo. The benchmark validates both the safety benefit and the expected cost, at the scale where the cost/benefit ratio is most challenging.
 
 ---
 
@@ -71,8 +71,8 @@ At the current demo knowledge base of ~30 documents, Traditional RAG with a well
 
 The system was not built once and evaluated at the end. Every prompt change (DocGrader leniency rule), rubric correction (Completeness evaluator), and retrieval parameter change (top-k from 5 to 6) was followed by a full LangSmith benchmark re-run to measure the exact impact on all 6 metrics.
 
-This is the same hypothesis → change → measure → iterate feedback loop used in production ML systems — and it was the mechanism by which the Helpfulness score was recovered from 0.720 to 0.800 without sacrificing Faithfulness. Without the benchmark as a regression harness, the DocGrader leniency change could have been applied blindly — improving some metrics while silently degrading others. The benchmark made the trade-offs visible and quantified. Every design decision in this document was validated against a benchmark number, not just intuition.
+This is the same hypothesis > change > measure > iterate feedback loop used in production ML systems — and it was the mechanism by which the Helpfulness score was recovered via leniency prompting without sacrificing Faithfulness. Without the benchmark as a regression harness, the DocGrader leniency change could have been applied blindly — improving some metrics while silently degrading others. The benchmark made the trade-offs visible and quantified. Every design decision in this document was validated against a benchmark number, not just intuition.
 
 ---
 
-← [Back to README](../README.md)
+[Back to README](../README.md)

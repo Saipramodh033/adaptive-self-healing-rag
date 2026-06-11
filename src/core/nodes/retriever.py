@@ -21,7 +21,7 @@ class RetrieverNode:
     Returns top-k document chunks for downstream grading and generation.
     """
 
-    def __init__(self, vectorstore: IVectorStore, top_k: int = 5):
+    def __init__(self, vectorstore: IVectorStore, top_k: int = 6):
         self._store = vectorstore
         self._top_k = top_k
 

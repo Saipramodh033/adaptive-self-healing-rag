@@ -45,12 +45,12 @@ During the first benchmark run, the Completeness evaluator was discovered to be 
 
 | Metric | Judge | Scale | What It Measures | Why It Matters |
 |---|---|---|---|---|
-| **Faithfulness** | 70B | 0–3 → 0–1 | Are all factual claims grounded in source docs? | Hallucinated policies create legal liability (ref: Air Canada chatbot case) |
+| **Faithfulness** | 70B | 0–3 to 0–1 | Are all factual claims grounded in source docs? | Hallucinated policies create legal liability (ref: Air Canada chatbot case) |
 | **Helpfulness** | 70B | 0–1 binary | Did the response address the user's core intent? | The primary job of a support agent |
-| **Completeness** | 70B | 0–2 → 0–1 | Were all sub-parts of a multi-intent question handled? | Multi-intent queries are common in real support interactions |
-| **Escalation Quality** | 8B | 0–2 → 0–1 | Quality of human-handoff messages (channel, context, tone) | Poor escalations frustrate users even when the system correctly admits it can't help |
+| **Completeness** | 70B | 0–2 to 0–1 | Were all sub-parts of a multi-intent question handled? | Multi-intent queries are common in real support interactions |
+| **Escalation Quality** | 8B | 0–2 to 0–1 | Quality of human-handoff messages (channel, context, tone) | Poor escalations frustrate users even when the system correctly admits it can't help |
 | **Safe Failure Rate** | 70B | 0–1 binary | Did the system correctly refuse adversarial/unanswerable queries? | Prevents jailbreaks and invented answers on unknowns |
-| **Retriever Recall@5** | Rule-based | 0–1 | Fraction of ground-truth source docs in top-5 retrieved | Measures retrieval quality independent of generation quality |
+| **Retriever Recall@6** | Rule-based | 0–1 | Fraction of ground-truth source docs in top-5 retrieved | Measures retrieval quality independent of generation quality |
 
 ---
 
@@ -63,7 +63,7 @@ During the first benchmark run, the Completeness evaluator was discovered to be 
 | Escalation Quality | 0.594 | **0.719** | +12.5% |
 | Helpfulness | **0.860** | 0.760 | -10.0% |
 | Completeness | **0.750** | 0.600 | -15.0% |
-| Retriever Recall@5 | **0.933** | 0.927 | -0.6% |
+| Retriever Recall@6 | **0.933** | 0.927 | -0.6% |
 
 > **Traditional RAG:** `Traditional-RAG-Baseline-V2` combined runs | 50 evaluations complete
 > **Adaptive RAG:** `Adaptive-RAG-System-V2-Patch` chronologically merged | 50 evaluations complete
@@ -74,7 +74,7 @@ The HallucinationGrader loop is working exactly as designed. The Traditional RAG
 
 ### The Safety Tax
 
-Helpfulness dropped by 10% (0.860 → 0.760) and Completeness dropped by 15% (0.750 → 0.600). This is the expected trade-off of strict guardrails. When the DocGrader filters retrieved documents aggressively, the Generator receives less context and safely escalates instead of answering (or dropping secondary questions). During the benchmark, the DocGrader was found to be slightly over-aggressive. A Leniency Rule was added to the grader prompt, recovering some completeness, but the remaining gap reflects genuine cases where the 8B grader model threw away context to protect the 70B model from hallucinating.
+Helpfulness dropped by 10% (0.860 to 0.760) and Completeness dropped by 15% (0.750 to 0.600). This is the expected trade-off of strict guardrails. When the DocGrader filters retrieved documents aggressively, the Generator receives less context and safely escalates instead of answering (or dropping secondary questions). During the benchmark, the DocGrader was found to be slightly over-aggressive. A Leniency Rule was added to the grader prompt, recovering some completeness, but the remaining gap reflects genuine cases where the 8B grader model threw away context to protect the 70B model from hallucinating.
 
 ### Compute & Cost Efficiency
 
