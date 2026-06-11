@@ -87,4 +87,4 @@ Evaluation rubrics must be designed to reward the behavior the system was built 
 
 ---
 
-← [Back to README](../README.md)
+[Back to README](../README.md)
